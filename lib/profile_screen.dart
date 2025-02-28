@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:college_project/theme_provider.dart';
+import 'package:college_project/Themes/theme_provider.dart';
 import 'dart:io';
 
 class ProfileScreen extends StatefulWidget {

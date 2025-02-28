@@ -1,13 +1,23 @@
-import 'package:college_project/academics_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:college_project/main_screen.dart';
-import 'package:college_project/techniques.dart';
+import 'package:college_project/OMW/techniques.dart';
+import 'package:college_project/academics_screen.dart';
 
-class AcademicsMainScreen extends StatelessWidget {
+class AcademicsMainScreen extends StatefulWidget {
   final List<Technique> techniques;
-  const AcademicsMainScreen({super.key, required this.techniques});
+  final Function(String, DateTime) onEventSelected; // Add this callback
 
+  const AcademicsMainScreen({
+    super.key,
+    required this.techniques,
+    required this.onEventSelected, // Receive the callback
+  });
+
+  @override
+  _AcademicsMainScreenState createState() => _AcademicsMainScreenState();
+}
+
+class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +58,7 @@ class AcademicsMainScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => AcademicsScreen(
-                      techniques: techniques,
+                      techniques: widget.techniques,
                     ),
                   ),
                 );
@@ -80,7 +90,7 @@ class AcademicsMainScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Column(
-              children: techniques.map((technique) {
+              children: widget.techniques.map((technique) {
                 return RadioListTile<String>(
                   title: Text(technique.title),
                   value: technique.title,
@@ -139,6 +149,9 @@ class AcademicsMainScreen extends StatelessWidget {
                         pickedTime.minute,
                       );
                       print("Selected Date and Time: $selectedDateTime");
+                      // Pass the selected technique and date-time back to the HomeScreen
+                      widget.onEventSelected(
+                          technique.title, selectedDateTime!);
                       Navigator.pop(context);
                     }
                   }

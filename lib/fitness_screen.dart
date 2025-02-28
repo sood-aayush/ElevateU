@@ -1,65 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:college_project/theme.dart';
+import 'package:college_project/Themes/theme.dart';
 
 class FitnessScreen extends StatefulWidget {
   const FitnessScreen({super.key});
 
   @override
-  _FitnessScreenState createState() => _FitnessScreenState();
+  State<FitnessScreen> createState() => _FitnessScreenState();
 }
 
-class _FitnessScreenState extends State<FitnessScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _controller;
-  bool _visible = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        _visible = true;
-        _controller.forward();
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class _FitnessScreenState extends State<FitnessScreen> {
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
+  String bmiResult = '';
+  String bmiCategory = '';
+  List<String> recommendations = [];
 
   @override
   Widget build(BuildContext context) {
+    // Get colors from theme
+    final theme = Theme.of(context).extension<CalendarTheme>()!;
+
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Fitness Tracker"),
+      ),
       body: Container(
         decoration: BoxDecoration(
-          gradient:
-              Theme.of(context).extension<GradientBackground>()?.gradient ??
-                  LinearGradient(
-                    colors: [Colors.teal.shade300, Colors.teal.shade900],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+          gradient: Theme.of(context).extension<GradientBackground>()?.gradient,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: ListView(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
             children: [
-              const Text(
-                "Workouts",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              Text(
+                "Calculate Your BMI",
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 20),
-              ..._getWorkoutRoutines().map((workout) => AnimatedWorkoutCard(
-                    workout: workout,
-                    controller: _controller,
-                  )),
+
+              // Input Fields
+              _buildInputField("Height (cm)", heightController),
+              const SizedBox(height: 10),
+              _buildInputField("Weight (kg)", weightController),
+              const SizedBox(height: 20),
+
+              // Calculate Button
+              ElevatedButton(
+                onPressed: _calculateBMI,
+                child: const Text("Calculate BMI"),
+              ),
+              const SizedBox(height: 20),
+
+              // BMI Result Display
+              if (bmiResult.isNotEmpty) _buildBMIResult(),
+
+              // Recommendations
+              if (recommendations.isNotEmpty) _buildRecommendations(),
             ],
           ),
         ),
@@ -67,79 +63,125 @@ class _FitnessScreenState extends State<FitnessScreen>
     );
   }
 
-  List<Workout> _getWorkoutRoutines() {
-    return [
-      Workout(
-          title: "Full Body Workout",
-          description: "A balanced full-body routine."),
-      Workout(
-          title: "Cardio Blast",
-          description: "Improve stamina with high-energy cardio."),
-      Workout(
-          title: "Strength Training",
-          description: "Build muscle with weight exercises."),
-      Workout(
-          title: "Flexibility & Mobility",
-          description: "Enhance movement and flexibility."),
-    ];
+  // Input Field Widget
+  Widget _buildInputField(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.2),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      keyboardType: TextInputType.number,
+    );
   }
-}
 
-class Workout {
-  final String title;
-  final String description;
+  // BMI Calculation Logic
+  void _calculateBMI() {
+    double heightCm = double.tryParse(heightController.text) ?? 0;
+    double weight = double.tryParse(weightController.text) ?? 0;
+    double heightM = heightCm / 100;
 
-  Workout({required this.title, required this.description});
-}
+    if (heightM > 0 && weight > 0) {
+      double bmi = weight / (heightM * heightM);
+      setState(() {
+        bmiResult = bmi.toStringAsFixed(1);
+        _setBMICategory(bmi);
+      });
+    }
+  }
 
-class AnimatedWorkoutCard extends StatelessWidget {
-  final Workout workout;
-  final AnimationController controller;
+  // Determines BMI Category & Recommendations
+  void _setBMICategory(double bmi) {
+    if (bmi < 18.5) {
+      bmiCategory = "Underweight";
+      recommendations = [
+        "Increase calorie intake",
+        "Eat protein-rich foods",
+        "Strength training exercises"
+      ];
+    } else if (bmi >= 18.5 && bmi <= 24.9) {
+      bmiCategory = "Normal Weight";
+      recommendations = [
+        "Maintain a balanced diet",
+        "Continue regular physical activity"
+      ];
+    } else if (bmi >= 25.0 && bmi <= 29.9) {
+      bmiCategory = "Overweight";
+      recommendations = [
+        "Reduce sugar intake",
+        "Increase cardio workouts",
+        "Monitor portion sizes"
+      ];
+    } else {
+      bmiCategory = "Obese";
+      recommendations = [
+        "Consult a dietitian",
+        "Follow structured exercise plans",
+        "Monitor daily calorie intake"
+      ];
+    }
+  }
 
-  const AnimatedWorkoutCard({
-    super.key,
-    required this.workout,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        return FadeTransition(
-          opacity: controller,
-          child: child,
-        );
-      },
-      child: Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
+  // Displays BMI Result & Category
+  Widget _buildBMIResult() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.white.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              "Your BMI: $bmiResult",
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              "Category: $bmiCategory",
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontStyle: FontStyle.italic),
+            ),
+          ],
         ),
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                workout.title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                workout.description,
-                style: const TextStyle(
-                  fontSize: 16,
-                ),
-              ),
-            ],
+      ),
+    );
+  }
+
+  // Displays Personalized Fitness Recommendations
+  Widget _buildRecommendations() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        children: [
+          Text(
+            "Fitness Tips:",
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
+          const SizedBox(height: 10),
+          ...recommendations.map(
+            (tip) => Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              color: Colors.white.withOpacity(0.2),
+              child: ListTile(
+                leading: const Icon(Icons.fitness_center, color: Colors.teal),
+                title: Text(tip, style: Theme.of(context).textTheme.bodyMedium),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

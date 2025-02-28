@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:college_project/theme.dart';
-import 'package:college_project/theme_provider.dart';
+import 'package:college_project/Themes/theme.dart';
+import 'package:college_project/Themes/theme_provider.dart';
 import 'package:college_project/main_screen.dart';
 
 void main() {

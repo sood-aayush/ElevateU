@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:college_project/mental_wellness_screen.dart';
 import 'package:intl/intl.dart';
 
-import 'package:college_project/techniques.dart';
+import 'package:college_project/OMW/techniques.dart';
 
 class MentalWellnessScreenMain extends StatelessWidget {
   final List<Technique> techniques;

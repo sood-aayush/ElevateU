@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:college_project/theme.dart';
+import 'package:college_project/Themes/theme.dart';
 
 class CalendarWidget extends StatefulWidget {
-  const CalendarWidget({super.key});
+  final List<Map<String, dynamic>> events; // Accept events from HomeScreen
+
+  const CalendarWidget({super.key, required this.events}); // Constructor
 
   @override
   CalendarWidgetState createState() => CalendarWidgetState();
@@ -12,7 +14,22 @@ class CalendarWidget extends StatefulWidget {
 class CalendarWidgetState extends State<CalendarWidget> {
   final int month = DateTime.now().month;
   final int year = DateTime.now().year;
-  Map<DateTime, List<String>> events = {};
+  late Map<DateTime, List<String>> eventsMap;
+
+  @override
+  void initState() {
+    super.initState();
+    // Convert events to Map<DateTime, List<String>> for easier access
+    eventsMap = {};
+    for (var event in widget.events) {
+      DateTime eventDate = event['dateTime'];
+      String eventTitle = event['title'];
+      if (!eventsMap.containsKey(eventDate)) {
+        eventsMap[eventDate] = [];
+      }
+      eventsMap[eventDate]!.add(eventTitle);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +97,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
 
   Widget _buildDayCell(DateTime date, CalendarTheme theme) {
     bool isToday = DateUtils.isSameDay(date, DateTime.now());
-    bool hasEvent = events.containsKey(date);
+    bool hasEvent = eventsMap.containsKey(date);
 
     return GestureDetector(
       onTap: () => _showEventsForDate(date),
@@ -124,7 +141,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
     showDialog(
       context: context,
       builder: (context) {
-        List<String> dayEvents = events[date] ?? [];
+        List<String> dayEvents = eventsMap[date] ?? [];
         return AlertDialog(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           title: Text(
