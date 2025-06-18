@@ -1,0 +1,2 @@
+C:/dev/Flutter Projects/ElevateU/ElevateU/android/app/.cxx/RelWithDebInfo/2l5m1f6l/x86/CMakeFiles/edit_cache.dir
+C:/dev/Flutter Projects/ElevateU/ElevateU/android/app/.cxx/RelWithDebInfo/2l5m1f6l/x86/CMakeFiles/rebuild_cache.dir

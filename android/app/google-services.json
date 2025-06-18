@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "975996341660",
+    "project_id": "elevateu-1fa00",
+    "storage_bucket": "elevateu-1fa00.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:975996341660:android:208d8ebb7e796e278a4c59",
+        "android_client_info": {
+          "package_name": "com.example.college_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJCwxJ8yBSJZf0tvMyGG_KQd7-_dwlLZE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

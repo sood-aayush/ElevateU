@@ -1,6 +1,20 @@
+buildscript {
+    repositories {
+        google()  // Ensure google is added here
+        mavenCentral()
+    }
+    dependencies { // Or any version you're using
+        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath 'com.google.gms:google-services:4.3.15'  // Add the correct version
+    }
+}
+
+
+
 allprojects {
     repositories {
         google()
+        gradlePluginPortal()
         mavenCentral()
     }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:college_project/main_screen.dart';
 import 'package:college_project/OMW/techniques.dart';
 import 'package:college_project/Themes/theme.dart';
 

@@ -1,0 +1,1 @@
+C:\dev\Flutter Projects\ElevateU\ElevateU\build\app\intermediates\cxx\RelWithDebInfo\2l5m1f6l\obj\armeabi-v7a

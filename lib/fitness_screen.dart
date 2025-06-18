@@ -1,187 +1,122 @@
 import 'package:flutter/material.dart';
+
+import 'package:college_project/OMW/techniques.dart';
 import 'package:college_project/Themes/theme.dart';
 
 class FitnessScreen extends StatefulWidget {
-  const FitnessScreen({super.key});
-
+  final List<Technique> techniques;
+  const FitnessScreen({super.key, required this.techniques});
   @override
-  State<FitnessScreen> createState() => _FitnessScreenState();
+  _FitnessScreenState createState() => _FitnessScreenState();
 }
 
-class _FitnessScreenState extends State<FitnessScreen> {
-  final TextEditingController heightController = TextEditingController();
-  final TextEditingController weightController = TextEditingController();
-  String bmiResult = '';
-  String bmiCategory = '';
-  List<String> recommendations = [];
+class _FitnessScreenState extends State<FitnessScreen>
+    with TickerProviderStateMixin {
+  bool _visible = false;
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _visible = true;
+        _controller.forward();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Get colors from theme
-    final theme = Theme.of(context).extension<CalendarTheme>()!;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Fitness Tracker"),
-      ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: Theme.of(context).extension<GradientBackground>()?.gradient,
+          gradient:
+              Theme.of(context).extension<GradientBackground>()?.gradient ??
+                  LinearGradient(
+                    // Fallback gradient if theme extension fails
+                    colors: [Colors.teal.shade300, Colors.teal.shade900],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: ListView(
             children: [
-              Text(
-                "Calculate Your BMI",
-                style: Theme.of(context).textTheme.headlineSmall,
+              const Text(
+                "Techniques",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-
-              // Input Fields
-              _buildInputField("Height (cm)", heightController),
-              const SizedBox(height: 10),
-              _buildInputField("Weight (kg)", weightController),
-              const SizedBox(height: 20),
-
-              // Calculate Button
-              ElevatedButton(
-                onPressed: _calculateBMI,
-                child: const Text("Calculate BMI"),
-              ),
-              const SizedBox(height: 20),
-
-              // BMI Result Display
-              if (bmiResult.isNotEmpty) _buildBMIResult(),
-
-              // Recommendations
-              if (recommendations.isNotEmpty) _buildRecommendations(),
+              ...widget.techniques.map((technique) => AnimatedTechniqueCard(
+                  technique: technique, controller: _controller)),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  // Input Field Widget
-  Widget _buildInputField(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.2),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      keyboardType: TextInputType.number,
-    );
-  }
+class AnimatedTechniqueCard extends StatelessWidget {
+  final Technique technique;
+  final AnimationController controller;
 
-  // BMI Calculation Logic
-  void _calculateBMI() {
-    double heightCm = double.tryParse(heightController.text) ?? 0;
-    double weight = double.tryParse(weightController.text) ?? 0;
-    double heightM = heightCm / 100;
+  const AnimatedTechniqueCard({
+    super.key,
+    required this.technique,
+    required this.controller,
+  });
 
-    if (heightM > 0 && weight > 0) {
-      double bmi = weight / (heightM * heightM);
-      setState(() {
-        bmiResult = bmi.toStringAsFixed(1);
-        _setBMICategory(bmi);
-      });
-    }
-  }
-
-  // Determines BMI Category & Recommendations
-  void _setBMICategory(double bmi) {
-    if (bmi < 18.5) {
-      bmiCategory = "Underweight";
-      recommendations = [
-        "Increase calorie intake",
-        "Eat protein-rich foods",
-        "Strength training exercises"
-      ];
-    } else if (bmi >= 18.5 && bmi <= 24.9) {
-      bmiCategory = "Normal Weight";
-      recommendations = [
-        "Maintain a balanced diet",
-        "Continue regular physical activity"
-      ];
-    } else if (bmi >= 25.0 && bmi <= 29.9) {
-      bmiCategory = "Overweight";
-      recommendations = [
-        "Reduce sugar intake",
-        "Increase cardio workouts",
-        "Monitor portion sizes"
-      ];
-    } else {
-      bmiCategory = "Obese";
-      recommendations = [
-        "Consult a dietitian",
-        "Follow structured exercise plans",
-        "Monitor daily calorie intake"
-      ];
-    }
-  }
-
-  // Displays BMI Result & Category
-  Widget _buildBMIResult() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white.withOpacity(0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              "Your BMI: $bmiResult",
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              "Category: $bmiCategory",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontStyle: FontStyle.italic),
-            ),
-          ],
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: controller,
+          child: child,
+        );
+      },
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
         ),
-      ),
-    );
-  }
-
-  // Displays Personalized Fitness Recommendations
-  Widget _buildRecommendations() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20),
-      child: Column(
-        children: [
-          Text(
-            "Fitness Tips:",
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          ...recommendations.map(
-            (tip) => Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              color: Colors.white.withOpacity(0.2),
-              child: ListTile(
-                leading: const Icon(Icons.fitness_center, color: Colors.teal),
-                title: Text(tip, style: Theme.of(context).textTheme.bodyMedium),
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                technique.title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              const SizedBox(height: 10),
+              Text(
+                technique.description,
+                style: const TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

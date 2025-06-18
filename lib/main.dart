@@ -1,10 +1,14 @@
+import 'package:college_project/auth_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:college_project/Themes/theme.dart';
 import 'package:college_project/Themes/theme_provider.dart';
 import 'package:college_project/main_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -25,7 +29,7 @@ class MyApp extends StatelessWidget {
       theme: AppThemes.lightTheme,
       darkTheme: AppThemes.darkTheme,
       themeMode: themeProvider.themeMode,
-      home: const SafeArea(child: MainScreen()),
+      home: const SafeArea(child: AuthGate()),
     );
   }
 }
