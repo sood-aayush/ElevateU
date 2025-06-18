@@ -9,7 +9,8 @@ class MentalWellnessScreenMain extends StatefulWidget {
   const MentalWellnessScreenMain({super.key});
 
   @override
-  State<MentalWellnessScreenMain> createState() => _MentalWellnessScreenMainState();
+  State<MentalWellnessScreenMain> createState() =>
+      _MentalWellnessScreenMainState();
 }
 
 class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
@@ -23,7 +24,8 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
   }
 
   Future<void> _fetchTechniques() async {
-    final snapshot = await FirebaseFirestore.instance.collection('meditation').get();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('meditation').get();
     setState(() {
       meditationTechniques = snapshot.docs.map((doc) => doc.data()).toList();
       isLoading = false;
@@ -43,7 +45,7 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const BreathingMindfulnessCard(),
-                  const SizedBox(height: 40),
+                    const SizedBox(height: 40),
                     const Text(
                       "Select the Mindfulness and Meditation Techniques you want to learn",
                       textAlign: TextAlign.center,
@@ -56,7 +58,8 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
                     ElevatedButton(
                       onPressed: () => _showTechniqueSelectionSheet(context),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30, vertical: 10),
                       ),
                       child: const Text("Select"),
                     ),
@@ -66,37 +69,38 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => MentalWellnessScreen(
-  techniques: meditationTechniques
-      .map((tech) => Technique(
-            title: tech['title'] ?? '',
-            description: tech['description'] ?? '',
-          ))
-      .toList(),
-),
+                            techniques: meditationTechniques
+                                .map((tech) => Technique(
+                                      title: tech['title'] ?? '',
+                                      description: tech['description'] ?? '',
+                                    ))
+                                .toList(),
+                          ),
                         ),
                       ),
-                      
-                      child:SizedBox(height: MediaQuery.of(context).size.height  *0.25,width:MediaQuery.of(context).size.width *0.85,
-                      child: Stack(
-                      alignment: Alignment.bottomCenter,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'assets/Wellness.jpg',
-                          ),
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.25,
+                        width: MediaQuery.of(context).size.width * 0.85,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.asset(
+                                'assets/Wellness.jpg',
+                              ),
+                            ),
+                            const Text(
+                              "All The Techniques",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        const Text(
-                          "All The Techniques",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                                        ),
-                    ),
+                      ),
                     ),
                   ],
                 ),
@@ -149,7 +153,8 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Select Date and Time for '$title'", style: const TextStyle(fontSize: 18)),
+            Text("Select Date and Time for '$title'",
+                style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
@@ -184,7 +189,8 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
             ),
             const SizedBox(height: 20),
             if (selectedDateTime != null)
-              Text("Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(selectedDateTime!)}"),
+              Text(
+                  "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(selectedDateTime!)}"),
           ],
         ),
       ),
@@ -230,7 +236,8 @@ class _BreathingMindfulnessCardState extends State<BreathingMindfulnessCard>
 
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4), // Total duration for one breath cycle
+      duration:
+          const Duration(seconds: 4), // Total duration for one breath cycle
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed && _isBreathingActive) {
           _animationController.reverse();
@@ -295,7 +302,8 @@ class _BreathingMindfulnessCardState extends State<BreathingMindfulnessCard>
 
   void _cycleMindfulnessPrompt() {
     setState(() {
-      _currentPromptIndex = (_currentPromptIndex + 1) % _mindfulnessPrompts.length;
+      _currentPromptIndex =
+          (_currentPromptIndex + 1) % _mindfulnessPrompts.length;
       _currentMindfulnessPrompt = _mindfulnessPrompts[_currentPromptIndex];
     });
   }
@@ -358,9 +366,7 @@ class _BreathingMindfulnessCardState extends State<BreathingMindfulnessCard>
                     ),
                   ),
                   Text(
-                    _isBreathingActive
-                        ? _breathingInstruction
-                        : 'Relax',
+                    _isBreathingActive ? _breathingInstruction : 'Relax',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isLightMode ? Colors.black : Colors.white,
@@ -381,13 +387,18 @@ class _BreathingMindfulnessCardState extends State<BreathingMindfulnessCard>
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _toggleBreathingExercise,
-              icon: Icon(
-                  _isBreathingActive ? Icons.pause_circle_filled : Icons.play_circle_fill),
-              label: Text(_isBreathingActive ? 'Pause Exercise' : 'Start Breathing Exercise'),
+              icon: Icon(_isBreathingActive
+                  ? Icons.pause_circle_filled
+                  : Icons.play_circle_fill),
+              label: Text(_isBreathingActive
+                  ? 'Pause Exercise'
+                  : 'Start Breathing Exercise'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isBreathingActive
                     ? Colors.orange.shade700 // A contrasting color for pause
-                    : isLightMode ? primaryColor : accentColor, // Theme's accent for start
+                    : isLightMode
+                        ? primaryColor
+                        : accentColor, // Theme's accent for start
                 foregroundColor: Colors.white,
               ),
             ),
@@ -410,7 +421,9 @@ class _BreathingMindfulnessCardState extends State<BreathingMindfulnessCard>
                   color: isLightMode ? Colors.grey[50] : Colors.grey[850],
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isLightMode ? Colors.grey.shade200 : Colors.grey.shade700,
+                    color: isLightMode
+                        ? Colors.grey.shade200
+                        : Colors.grey.shade700,
                   ),
                 ),
                 child: Text(

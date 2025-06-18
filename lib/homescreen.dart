@@ -1,3 +1,5 @@
+import 'package:college_project/OMW/daily_task_card.dart';
+import 'package:college_project/OMW/progress_bar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:college_project/OMW/calendar_widget.dart';
 
@@ -10,17 +12,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> events = [];
-
-  void addEvent(String technique, DateTime dateTime) {
-    setState(() {
-      events.add({
-        'title': technique,
-        'dateTime': dateTime,
-      });
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,10 +19,13 @@ class HomeScreenState extends State<HomeScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            CalendarWidget(events: events), // Pass events to CalendarWidget
-            const Card(
-                //percentage widget
-                ),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CurrentStats()),
+              ),
+              child: const DailyTaskCard(taskCount: 6),
+            ),
             SizedBox(height: MediaQuery.of(context).size.height * 0.01),
             const Text(
               'What do you want to work on',
@@ -145,6 +139,43 @@ class HomeScreenState extends State<HomeScreen> {
             const SizedBox(
               height: 30,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CurrentStats extends StatefulWidget {
+  const CurrentStats({super.key});
+
+  @override
+  State<CurrentStats> createState() => _CurrentStatsState();
+}
+
+class _CurrentStatsState extends State<CurrentStats> {
+  List<Map<String, dynamic>> events = [];
+
+  void addEvent(String technique, DateTime dateTime) {
+    setState(() {
+      events.add({
+        'title': technique,
+        'dateTime': dateTime,
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Current Events"),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const ProgressScreen(),
+            CalendarWidget(events: events),
           ],
         ),
       ),

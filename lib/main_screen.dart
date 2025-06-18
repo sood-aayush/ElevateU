@@ -31,23 +31,18 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     _screens = [
       // Pass the GlobalKey to HomeScreen.
       HomeScreen(key: _homeScreenKey, changeIndex: _changeIndex),
-      AcademicsMainScreen(
-        onEventSelected: _handleEventSelected,
-      ),
-      MentalWellnessScreenMain(),
+      const AcademicsMainScreen(),
+      const MentalWellnessScreenMain(),
       const FitnessScreenMain(),
       const ProfileScreen(),
     ];
   }
 
   // Callback with the correct signature.
-  void _handleEventSelected(String technique, DateTime dateTime) {
-    _homeScreenKey.currentState?.addEvent(technique, dateTime);
-  }
 
   void _changeIndex(int index) {
     setState(() {
@@ -66,29 +61,6 @@ class _MainScreenState extends State<MainScreen> {
     final bottomNavTheme = Theme.of(context).extension<BottomNavTheme>()!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const Text(
-              'Welcome!',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              formattedDate,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
-          ],
-        ),
-        elevation: 0,
-      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,

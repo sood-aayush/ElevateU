@@ -4,12 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:college_project/OMW/techniques.dart';
 import 'package:college_project/academics_screen.dart';
 import 'package:flutter/services.dart';
-import 'dart:async'; 
+import 'dart:async';
 
 class AcademicsMainScreen extends StatefulWidget {
-  final Function(String, DateTime) onEventSelected;
-
-  const AcademicsMainScreen({super.key, required this.onEventSelected});
+  const AcademicsMainScreen({
+    super.key,
+  });
 
   @override
   _AcademicsMainScreenState createState() => _AcademicsMainScreenState();
@@ -25,7 +25,8 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
   }
 
   Future<List<Technique>> _fetchTechniquesFromFirestore() async {
-    final snapshot = await FirebaseFirestore.instance.collection('academics').get();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('academics').get();
     return snapshot.docs.map((doc) {
       final data = doc.data();
       return Technique(
@@ -78,7 +79,8 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 10),
                     ),
                     child: const Text("Select"),
                   ),
@@ -90,9 +92,10 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
                         builder: (_) => AcademicsScreen(techniques: techniques),
                       ),
                     ),
-                    
-                    child:SizedBox(height: MediaQuery.of(context).size.height  *0.25,width:MediaQuery.of(context).size.width *0.85 ,
-                        child: Stack(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.25,
+                      width: MediaQuery.of(context).size.width * 0.85,
+                      child: Stack(
                         alignment: Alignment.bottomCenter,
                         children: [
                           ClipRRect(
@@ -110,8 +113,8 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
                             ),
                           ),
                         ],
-                                          ),
                       ),
+                    ),
                   ),
                 ],
               ),
@@ -192,11 +195,6 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
                       pickedTime.minute,
                     );
 
-                    widget.onEventSelected(
-                      technique.title,
-                      selectedDateTime!,
-                    );
-
                     Navigator.pop(context);
                   }
                 }
@@ -205,7 +203,8 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
             ),
             const SizedBox(height: 20),
             if (selectedDateTime != null)
-              Text("Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(selectedDateTime!)}"),
+              Text(
+                  "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(selectedDateTime!)}"),
           ],
         ),
       ),
@@ -222,7 +221,8 @@ class StudySessionTimer extends StatefulWidget {
 
 enum TimerMode { focus, shortBreak, longBreak, initial }
 
-class _StudySessionTimerState extends State<StudySessionTimer> with SingleTickerProviderStateMixin {
+class _StudySessionTimerState extends State<StudySessionTimer>
+    with SingleTickerProviderStateMixin {
   static const int _initialFocusDurationMinutes = 25;
   static const int _initialShortBreakDurationMinutes = 5;
   static const int _initialLongBreakDurationMinutes = 15;
@@ -251,7 +251,8 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
       duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(CurvedAnimation(
+    _scaleAnimation =
+        Tween<double>(begin: 0.9, end: 1.0).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
@@ -316,11 +317,13 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
       if (_completedFocusSessions % _focusSessionsBeforeLongBreak == 0) {
         _currentMode = TimerMode.longBreak;
         _remainingSeconds = _longBreakDurationSeconds;
-        _showCompletionDialog("Long Break Time!", "You've completed $_completedFocusSessions focus sessions. Take a longer break.");
+        _showCompletionDialog("Long Break Time!",
+            "You've completed $_completedFocusSessions focus sessions. Take a longer break.");
       } else {
         _currentMode = TimerMode.shortBreak;
         _remainingSeconds = _shortBreakDurationSeconds;
-        _showCompletionDialog("Short Break Time!", "Time for a quick break. You've completed $_completedFocusSessions focus sessions.");
+        _showCompletionDialog("Short Break Time!",
+            "Time for a quick break. You've completed $_completedFocusSessions focus sessions.");
       }
     } else {
       _currentMode = TimerMode.focus;
@@ -364,7 +367,8 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildDurationSetting(String label, int currentDurationMinutes, ValueChanged<int> onMinutesChanged) {
+  Widget _buildDurationSetting(String label, int currentDurationMinutes,
+      ValueChanged<int> onMinutesChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -372,22 +376,25 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
         SizedBox(
           width: 80,
           child: TextField(
-            controller: TextEditingController(text: currentDurationMinutes.toString()),
+            controller:
+                TextEditingController(text: currentDurationMinutes.toString()),
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onChanged: (value) {
               int? newMinutes = int.tryParse(value);
               if (newMinutes != null && newMinutes > 0) {
                 onMinutesChanged(newMinutes);
                 if (!_isRunning && label.contains("Focus")) {
-                   setState(() {
-                     _remainingSeconds = newMinutes * 60;
-                   });
+                  setState(() {
+                    _remainingSeconds = newMinutes * 60;
+                  });
                 }
               }
             },
@@ -417,7 +424,8 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Important for fitting into limited space
+          mainAxisSize:
+              MainAxisSize.min, // Important for fitting into limited space
           children: [
             Text(
               "Study Session Timer",
@@ -427,9 +435,6 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
             Text(
               modeText,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: _currentMode == TimerMode.focus
-                        ? Theme.of(context).primaryColor
-                        : Theme.of(context).colorScheme.secondary,
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -441,13 +446,7 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
                 height: 150, // Slightly reduced size
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _currentMode == TimerMode.focus
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : Theme.of(context).colorScheme.secondary.withOpacity(0.1),
                   border: Border.all(
-                    color: _currentMode == TimerMode.focus
-                        ? Theme.of(context).primaryColor
-                        : Theme.of(context).colorScheme.secondary,
                     width: 4,
                   ),
                 ),
@@ -456,9 +455,6 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
                   _formatTime(displaySeconds),
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         fontSize: 50, // Reduced font size to fit
-                        color: _currentMode == TimerMode.focus
-                            ? Theme.of(context).primaryColor
-                            : Theme.of(context).colorScheme.secondary,
                       ),
                 ),
               ),
@@ -470,23 +466,25 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
                 FloatingActionButton.small(
                   heroTag: 'resetBtnStudy', // Unique tag for this context
                   onPressed: _resetTimer,
-                  backgroundColor: Theme.of(context).colorScheme.error,
+
                   child: const Icon(Icons.refresh),
                 ),
                 FloatingActionButton(
                   heroTag: 'playPauseBtnStudy', // Unique tag
                   onPressed: _isRunning ? _pauseTimer : _startTimer,
-                  backgroundColor: _isRunning ? Theme.of(context).colorScheme.error : Theme.of(context).primaryColor,
+
                   child: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
                 ),
                 FloatingActionButton.small(
                   heroTag: 'skipBtnStudy', // Unique tag
-                  onPressed: _isRunning ? () {
-                    _timer?.cancel();
-                    _isRunning = false;
-                    _handleTimerEnd();
-                  } : null,
-                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  onPressed: _isRunning
+                      ? () {
+                          _timer?.cancel();
+                          _isRunning = false;
+                          _handleTimerEnd();
+                        }
+                      : null,
+
                   child: const Icon(Icons.skip_next),
                 ),
               ],
@@ -502,19 +500,22 @@ class _StudySessionTimerState extends State<StudySessionTimer> with SingleTicker
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 10),
-            _buildDurationSetting("Focus Duration", _focusDurationSeconds ~/ 60, (minutes) {
+            _buildDurationSetting("Focus Duration", _focusDurationSeconds ~/ 60,
+                (minutes) {
               setState(() {
                 _focusDurationSeconds = minutes * 60;
               });
             }),
             const SizedBox(height: 10),
-            _buildDurationSetting("Short Break", _shortBreakDurationSeconds ~/ 60, (minutes) {
+            _buildDurationSetting(
+                "Short Break", _shortBreakDurationSeconds ~/ 60, (minutes) {
               setState(() {
                 _shortBreakDurationSeconds = minutes * 60;
               });
             }),
             const SizedBox(height: 10),
-            _buildDurationSetting("Long Break", _longBreakDurationSeconds ~/ 60, (minutes) {
+            _buildDurationSetting("Long Break", _longBreakDurationSeconds ~/ 60,
+                (minutes) {
               setState(() {
                 _longBreakDurationSeconds = minutes * 60;
               });
