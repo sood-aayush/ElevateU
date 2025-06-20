@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:college_project/Themes/theme_provider.dart';
-import 'package:college_project/login_screen.dart';
+import 'package:college_project/auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -35,7 +35,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserProfile() async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       if (doc.exists) {
         final data = doc.data()!;
         setState(() {
@@ -49,14 +52,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'goal': 'Set a goal',
           'profileImageURL': null,
         });
-        setState(() { // Also update state if a new user profile is created
+        setState(() {
+          // Also update state if a new user profile is created
           name = 'New User';
           goal = 'Set a goal';
         });
       }
     } catch (e) {
       print('Error loading profile: $e');
-      if (mounted) { // Check mounted state before showing SnackBar
+      if (mounted) {
+        // Check mounted state before showing SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading profile: $e')),
         );
@@ -89,7 +94,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     const cloudName = 'dswpsld8n';
     const uploadPreset = 'profilepic';
 
-    final uri = Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/image/upload");
+    final uri =
+        Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/image/upload");
 
     try {
       final request = http.MultipartRequest('POST', uri)
@@ -103,7 +109,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final data = jsonDecode(resStr);
         final downloadURL = data['secure_url'];
 
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
           'profileImageURL': downloadURL,
         });
 
@@ -117,7 +126,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         print('Upload failed: ${response.statusCode} - $resStr');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload image: ${response.statusCode}')), // More concise message
+            SnackBar(
+                content: Text(
+                    'Failed to upload image: ${response.statusCode}')), // More concise message
           );
         }
       }
@@ -139,29 +150,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // Essential for keyboard to push modal up
-      builder: (BuildContext context) { // Use BuildContext from builder to get proper MediaQuery
-        return LayoutBuilder( // Allows to get parent constraints to size the modal content
+      builder: (BuildContext context) {
+        // Use BuildContext from builder to get proper MediaQuery
+        return LayoutBuilder(
+          // Allows to get parent constraints to size the modal content
           builder: (BuildContext context, BoxConstraints constraints) {
-            final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+            final double keyboardHeight =
+                MediaQuery.of(context).viewInsets.bottom;
             // Calculate maximum height for the modal content, leaving some space
-            final double maxModalContentHeight = constraints.maxHeight * 0.9; // Adjusted to 90%
+            final double maxModalContentHeight =
+                constraints.maxHeight * 0.9; // Adjusted to 90%
 
-            return ConstrainedBox( // Constrain the height of the modal's content
+            return ConstrainedBox(
+              // Constrain the height of the modal's content
               constraints: BoxConstraints(
                 maxHeight: maxModalContentHeight,
               ),
               child: Padding(
-                padding: EdgeInsets.only(bottom: keyboardHeight), // Push modal up by keyboard height
+                padding: EdgeInsets.only(
+                    bottom: keyboardHeight), // Push modal up by keyboard height
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   // Removed explicit height, relying on ConstrainedBox and Column's mainAxisSize.min
-                  decoration: BoxDecoration( // Added decoration for modal background (important to prevent transparent overflow on theme change)
-                    color: Theme.of(context).canvasColor, // Use theme's canvas color for modal background
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  decoration: BoxDecoration(
+                    // Added decoration for modal background (important to prevent transparent overflow on theme change)
+                    color: Theme.of(context)
+                        .canvasColor, // Use theme's canvas color for modal background
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
-                  child: SingleChildScrollView( // Makes the content *inside* the modal scrollable
+                  child: SingleChildScrollView(
+                    // Makes the content *inside* the modal scrollable
                     child: Column(
-                      mainAxisSize: MainAxisSize.min, // Column takes minimum vertical space
+                      mainAxisSize: MainAxisSize
+                          .min, // Column takes minimum vertical space
                       children: [
                         // Title
                         Text(
@@ -198,7 +220,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         // Goal TextField
                         TextField(
                           controller: goalController,
-                          decoration: const InputDecoration(labelText: 'Your Goal'),
+                          decoration:
+                              const InputDecoration(labelText: 'Your Goal'),
                           maxLines: 2, // Retained your original maxLines
                           // No UI changes: minLines: 1, // Added for UX, but optional
                           // No UI changes: keyboardType: TextInputType.multiline, // Added for UX, but optional
@@ -225,22 +248,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   name = newName;
                                   goal = newGoal;
                                 });
-                                if (mounted) { // Check mounted state before popping
+                                if (mounted) {
+                                  // Check mounted state before popping
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Profile updated successfully!')),
+                                    const SnackBar(
+                                        content: Text(
+                                            'Profile updated successfully!')),
                                   );
                                 }
                               } catch (e) {
                                 print("Error updating profile: $e");
-                                if (mounted) { // Check mounted state before showing SnackBar
+                                if (mounted) {
+                                  // Check mounted state before showing SnackBar
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Failed to update profile: $e')),
+                                    SnackBar(
+                                        content: Text(
+                                            'Failed to update profile: $e')),
                                   );
                                 }
                               }
                             } else {
-                              if (mounted) Navigator.pop(context); // Close if no changes
+                              if (mounted)
+                                Navigator.pop(context); // Close if no changes
                             }
                           },
                           child: const Text('Save Changes'),
@@ -267,169 +297,169 @@ class _ProfileScreenState extends State<ProfileScreen> {
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     } catch (e) {
-      if (mounted) { // Check mounted state before showing SnackBar
+      if (mounted) {
+        // Check mounted state before showing SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Logout failed: $e')),
         );
       }
     }
   }
+
   void _showImageSourceActionSheet() {
-  showModalBottomSheet(
-    context: context,
-    builder: (_) => SafeArea(
-      child: Wrap(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text('Pick from Gallery'),
-            onTap: () async {
-              Navigator.pop(context);
-              await _pickImage(ImageSource.gallery);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt),
-            title: const Text('Take a Picture'),
-            onTap: () async {
-              Navigator.pop(context);
-              await _pickImage(ImageSource.camera);
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-void _showImagePreviewOverlay() {
-  if (_overlayEntry != null) return; // prevent duplicates
-
-  final imageProvider = profileImageFile != null
-      ? FileImage(profileImageFile!)
-      : (profileImageURL != null
-          ? NetworkImage(profileImageURL!)
-          : const AssetImage('assets/def.jpeg') as ImageProvider);
-
-  // Animation controller + fade transition using StatefulBuilder
-  _overlayEntry = OverlayEntry(
-    builder: (context) {
-      return Material(
-        color: Colors.black54,
-        child: Center(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 300),
-            builder: (context, opacity, child) {
-              return Opacity(
-                opacity: opacity,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: CircleAvatar(
-                    radius: 120,
-                    backgroundImage: imageProvider,
-                  ),
-                ),
-              );
-            },
-          ),
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Pick from Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a Picture'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickImage(ImageSource.camera);
+              },
+            ),
+          ],
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 
-  Overlay.of(context).insert(_overlayEntry!);
-}
+  void _showImagePreviewOverlay() {
+    if (_overlayEntry != null) return; // prevent duplicates
 
+    final imageProvider = profileImageFile != null
+        ? FileImage(profileImageFile!)
+        : (profileImageURL != null
+            ? NetworkImage(profileImageURL!)
+            : const AssetImage('assets/def.jpeg') as ImageProvider);
 
-void _hideImagePreviewOverlay() {
-  _overlayEntry?.remove();
-  _overlayEntry = null;
-}
+    // Animation controller + fade transition using StatefulBuilder
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Material(
+          color: Colors.black54,
+          child: Center(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 300),
+              builder: (context, opacity, child) {
+                return Opacity(
+                  opacity: opacity,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: CircleAvatar(
+                      radius: 120,
+                      backgroundImage: imageProvider,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideImagePreviewOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
 
   @override
   Widget build(BuildContext context) {
-  final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
-  
-  return Scaffold(
-    backgroundColor: Colors.transparent,
-    appBar: AppBar(
-      title: const Text('Profile'),
-      actions: [
-        Row(
-          children: [
-            const Icon(Icons.light_mode),
-            Switch(
-              value: themeProvider.themeMode == ThemeMode.dark,
-              onChanged: (val) => themeProvider.toggleTheme(val),
-            ),
-            const Icon(Icons.dark_mode),
-          ],
-        ),
-        const SizedBox(width: 10),
-      ],
-    ),
-    body: isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Center(
-                  child: Stack(
-                    children: [
-                      GestureDetector(
-                        onLongPressStart: (_) => _showImagePreviewOverlay(),
-                        onLongPressEnd: (_)=> _hideImagePreviewOverlay(),
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundImage: profileImageFile != null
-                              ? FileImage(profileImageFile!)
-                              : (profileImageURL != null
-                                  ? NetworkImage(profileImageURL!)
-                                  : const AssetImage('assets/def.jpeg')
-                                      as ImageProvider),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: InkWell(
-                          onTap: _showImageSourceActionSheet,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          Row(
+            children: [
+              const Icon(Icons.light_mode),
+              Switch(
+                value: themeProvider.themeMode == ThemeMode.dark,
+                onChanged: (val) => themeProvider.toggleTheme(val),
+              ),
+              const Icon(Icons.dark_mode),
+            ],
+          ),
+          const SizedBox(width: 10),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Center(
+                    child: Stack(
+                      children: [
+                        GestureDetector(
+                          onLongPressStart: (_) => _showImagePreviewOverlay(),
+                          onLongPressEnd: (_) => _hideImagePreviewOverlay(),
                           child: CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Colors.grey[200],
-                            child:
-                                const Icon(Icons.camera_alt, color: Colors.black),
+                            radius: 60,
+                            backgroundImage: profileImageFile != null
+                                ? FileImage(profileImageFile!)
+                                : (profileImageURL != null
+                                    ? NetworkImage(profileImageURL!)
+                                    : const AssetImage('assets/def.jpeg')
+                                        as ImageProvider),
                           ),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: InkWell(
+                            onTap: _showImageSourceActionSheet,
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Colors.grey[200],
+                              child: const Icon(Icons.camera_alt,
+                                  color: Colors.black),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(name, style: Theme.of(context).textTheme.bodyLarge),
-                const SizedBox(height: 10),
-                Text(user.email ?? '', style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 20),
-                Text("Goal: $goal",
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _showEditProfileModal,
-                  child: const Text("Edit Profile"),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _logout,
-                  child: const Text("Logout"),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  Text(name, style: Theme.of(context).textTheme.bodyLarge),
+                  const SizedBox(height: 10),
+                  Text(user.email ?? '',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 20),
+                  Text("Goal: $goal",
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _showEditProfileModal,
+                    child: const Text("Edit Profile"),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _logout,
+                    child: const Text("Logout"),
+                  ),
+                ],
+              ),
             ),
-          ),
-  );
-}
-
+    );
+  }
 }

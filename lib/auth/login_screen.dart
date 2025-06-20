@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:college_project/Services/auth_service.dart';
-import 'package:college_project/signup_screen.dart';
+import 'package:college_project/auth/signup_screen.dart';
 import 'package:college_project/main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,24 +18,24 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
 
   void handleLogin() async {
-  setState(() => isLoading = true);
-  final user = await _authService.signIn(
-    context,
-    emailController.text.trim(),
-    passwordController.text.trim(),
-  );
-
-  if (!mounted) return; // 💡 prevents calling setState after disposal
-
-  setState(() => isLoading = false);
-
-  if (user != null) {
-    Navigator.pushReplacement(
+    setState(() => isLoading = true);
+    final user = await _authService.signIn(
       context,
-      MaterialPageRoute(builder: (_) => const MainScreen()),
+      emailController.text.trim(),
+      passwordController.text.trim(),
     );
+
+    if (!mounted) return; // 💡 prevents calling setState after disposal
+
+    setState(() => isLoading = false);
+
+    if (user != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +69,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   context,
                   MaterialPageRoute(builder: (_) => const SignupScreen()),
                 ),
-                child: const Text("Don't have an account? Sign up"),
+                child: const Text("Don't have an account? Sign up",
+                    style: TextStyle(color: Colors.white)),
               ),
             ],
           ),

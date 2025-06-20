@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:college_project/OMW/daily_task_card.dart';
 import 'package:college_project/OMW/progress_bar_widget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:college_project/OMW/calendar_widget.dart';
 
@@ -19,13 +21,7 @@ class HomeScreenState extends State<HomeScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CurrentStats()),
-              ),
-              child: const DailyTaskCard(taskCount: 6),
-            ),
+            const DailyTaskCard(),
             SizedBox(height: MediaQuery.of(context).size.height * 0.01),
             const Text(
               'What do you want to work on',
@@ -154,29 +150,85 @@ class CurrentStats extends StatefulWidget {
 }
 
 class _CurrentStatsState extends State<CurrentStats> {
-  List<Map<String, dynamic>> events = [];
-
-  void addEvent(String technique, DateTime dateTime) {
-    setState(() {
-      events.add({
-        'title': technique,
-        'dateTime': dateTime,
-      });
-    });
-  }
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
+    final User? user = _auth.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Current Activities")),
+        body: const Center(
+          child: Text("Please log in to view your activities."),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Current Events"),
+        title: const Text("Your Scheduled Activities"),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const ProgressScreen(),
-            CalendarWidget(events: events),
-          ],
+        child: StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('users')
+              .doc(user.uid)
+              .collection('activities')
+              .orderBy('timestamp', descending: false)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              print("Error fetching activities: ${snapshot.error}");
+              return Center(
+                  child: Text("Error loading activities: ${snapshot.error}"));
+            }
+
+            final List<Map<String, dynamic>> allActivities = [];
+            if (snapshot.hasData) {
+              for (var doc in snapshot.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                allActivities.add({
+                  'id': doc
+                      .id, // KEEPING DOC ID IS CRITICAL FOR LATER DELETE/UPDATE
+                  'techniqueTitle': data['techniqueTitle'],
+                  'timestamp': (data['timestamp'] as Timestamp).toDate(),
+                  'category': data['category'],
+                  'isCompleted':
+                      data['isCompleted'] ?? false, // ADDING THIS FIELD
+                });
+              }
+            }
+
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  // --- REMOVED DAILYTASKCARD FROM HERE ---
+                  // It caused an infinite loop as DailyTaskCard navigates to CurrentStats.
+                  // DailyTaskCard should live on your main dashboard/home screen,
+                  // and that screen will be responsible for providing its task count.
+                  const SizedBox(height: 20), // Add some spacing instead
+                  const ProgressScreen(),
+                  const SizedBox(height: 20),
+                  CalendarWidget(events: allActivities), // Pass ALL activities
+                  if (allActivities.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text(
+                        "No activities scheduled yet.",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

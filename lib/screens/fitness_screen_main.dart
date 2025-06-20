@@ -1,6 +1,7 @@
 // Enhanced FitnessScreen with Firestore + BMI & Recommendations
 import 'package:college_project/OMW/techniques.dart';
-import 'package:college_project/fitness_screen.dart';
+import 'package:college_project/screens/fitness_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -17,6 +18,10 @@ class _FitnessScreenMainState extends State<FitnessScreenMain> {
   late Future<List<Technique>> _techniquesFuture;
   double? lastBMI;
 
+  // State to hold the selected technique and date/time for display (optional)
+  Technique? _selectedTechniqueForDisplay;
+  DateTime? _selectedDateTimeForDisplay;
+
   @override
   void initState() {
     super.initState();
@@ -27,7 +32,6 @@ class _FitnessScreenMainState extends State<FitnessScreenMain> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Ensure it runs after navigation settles
     Future.microtask(_loadLastBMI);
   }
 
@@ -40,15 +44,65 @@ class _FitnessScreenMainState extends State<FitnessScreenMain> {
   }
 
   Future<List<Technique>> _fetchTechniquesFromFirestore() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('fitness').get();
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      return Technique(
-        title: data['title'] ?? 'Untitled',
-        description: data['description'] ?? '',
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('fitness').get();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Technique(
+          title: data['title'] ?? 'Untitled',
+          description: data['description'] ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      print("Error fetching fitness techniques: $e");
+      return [];
+    }
+  }
+
+  // --- REUSABLE METHOD TO SAVE DATA TO FIRESTORE ---
+  Future<void> _saveActivity(
+      Technique technique, DateTime dateTime, String category) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("You need to be logged in to save activities.")),
       );
-    }).toList();
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('activities')
+          .add({
+        'techniqueTitle': technique.title,
+        'timestamp': Timestamp.fromDate(dateTime),
+        'category': category, // Use the passed category
+        'createdAt': FieldValue.serverTimestamp(),
+        'userId': user.uid,
+        'isCompleted': false, // <--- ADD THIS LINE HERE!
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                "Scheduled '${technique.title}' for ${DateFormat('yyyy-MM-dd HH:mm').format(dateTime)}")),
+      );
+      // Update local state for display (optional)
+      setState(() {
+        _selectedTechniqueForDisplay = technique;
+        _selectedDateTimeForDisplay = dateTime;
+      });
+      print("$category activity saved successfully!");
+    } catch (e) {
+      print("Error saving $category activity: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save activity: $e")),
+      );
+    }
   }
 
   @override
@@ -80,7 +134,7 @@ class _FitnessScreenMainState extends State<FitnessScreenMain> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    "Select the Effective Fitness Techniques you want to learn",
+                    "Custom-Craft Your Ultimate Workout",
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                   ),
@@ -99,6 +153,33 @@ class _FitnessScreenMainState extends State<FitnessScreenMain> {
                     child: const Text("Select"),
                   ),
                   const SizedBox(height: 15),
+                  // Optional: Display the last selected item
+                  if (_selectedTechniqueForDisplay != null &&
+                      _selectedDateTimeForDisplay != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 15.0),
+                      child: Card(
+                        margin: EdgeInsets.symmetric(horizontal: 10),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Last Scheduled Fitness Activity:",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                  "Technique: ${_selectedTechniqueForDisplay!.title}"),
+                              Text(
+                                  "Time: ${DateFormat('yyyy-MM-dd – kk:mm').format(_selectedDateTimeForDisplay!)}"),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   InkWell(
                     onTap: () => Navigator.push(
                       context,
@@ -116,14 +197,19 @@ class _FitnessScreenMainState extends State<FitnessScreenMain> {
                             borderRadius: BorderRadius.circular(16),
                             child: Image.asset(
                               'assets/Fitness.jpg',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
                             ),
                           ),
-                          const Text(
-                            "All The Techniques",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                          const Positioned(
+                            bottom: 10,
+                            child: Text(
+                              "All The Techniques",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -151,88 +237,119 @@ class _FitnessScreenMainState extends State<FitnessScreenMain> {
   }
 
   Widget _buildBottomSheet(BuildContext context, List<Technique> techniques) {
-    String? selectedTechnique;
+    String? selectedTechniqueTitle;
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Choose a technique:", style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 20),
-            Column(
-              children: techniques.map((technique) {
-                return RadioListTile<String>(
-                  title: Text(technique.title),
-                  value: technique.title,
-                  groupValue: selectedTechnique,
-                  onChanged: (value) {
-                    selectedTechnique = value;
-                    Navigator.pop(context);
-                    _showDateTimeSheet(context, technique);
-                  },
-                );
-              }).toList(),
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setModalState) {
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Choose a technique:",
+                    style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 20),
+                Column(
+                  children: techniques.map((technique) {
+                    return RadioListTile<String>(
+                      title: Text(technique.title),
+                      value: technique.title,
+                      groupValue: selectedTechniqueTitle,
+                      onChanged: (value) {
+                        setModalState(() {
+                          selectedTechniqueTitle = value;
+                        });
+                        Navigator.pop(
+                            context); // Close technique selection sheet
+                        // Pass the entire Technique object to the next sheet
+                        _showDateTimeSheet(context, technique);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   void _showDateTimeSheet(BuildContext context, Technique technique) {
-    DateTime? selectedDateTime;
-
     showModalBottomSheet(
       context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Select Date and Time for '${technique.title}'",
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                final pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2100),
-                );
+      builder: (_) {
+        DateTime? tempSelectedDateTime;
 
-                if (pickedDate != null) {
-                  final pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.now(),
-                  );
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Select Date and Time for '${technique.title}'",
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      );
 
-                  if (pickedTime != null) {
-                    selectedDateTime = DateTime(
-                      pickedDate.year,
-                      pickedDate.month,
-                      pickedDate.day,
-                      pickedTime.hour,
-                      pickedTime.minute,
-                    );
+                      if (pickedDate != null) {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
 
-                    Navigator.pop(context);
-                  }
-                }
-              },
-              child: const Text("Pick Date and Time"),
-            ),
-            const SizedBox(height: 20),
-            if (selectedDateTime != null)
-              Text(
-                  "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(selectedDateTime!)}"),
-          ],
-        ),
-      ),
+                        if (pickedTime != null) {
+                          tempSelectedDateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                          setModalState(() {
+                            // Update the state of this modal sheet
+                          });
+                        }
+                      }
+                    },
+                    child: const Text("Pick Date and Time"),
+                  ),
+                  const SizedBox(height: 20),
+                  if (tempSelectedDateTime != null)
+                    Text(
+                      "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(tempSelectedDateTime!)}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    )
+                  else
+                    const Text("No date and time selected."),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: tempSelectedDateTime == null
+                        ? null // Disable button if no date/time is selected
+                        : () {
+                            Navigator.pop(context); // Close date/time sheet
+                            _saveActivity(technique, tempSelectedDateTime!,
+                                'fitness'); // Pass 'fitness' category
+                          },
+                    child: const Text("Schedule Activity"),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -498,7 +615,8 @@ class _BMIMeterWidgetState extends State<BMIMeterWidget>
                     AnimatedBuilder(
                       animation: _bmiAnimation,
                       builder: (context, child) => LinearProgressIndicator(
-                        backgroundColor: Colors.white,
+                        color: _getBMIMeterColor(widget.bmi!),
+                        backgroundColor: Colors.grey.shade300,
                         value: _bmiAnimation.value,
                         minHeight: 12,
                       ),

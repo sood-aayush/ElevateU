@@ -1,9 +1,9 @@
-import 'package:college_project/academics_screen.dart';
-import 'package:college_project/academics_screen_main.dart';
-import 'package:college_project/fitness_screen_main.dart';
+import 'package:college_project/screens/academics_screen.dart';
+import 'package:college_project/screens/academics_screen_main.dart';
+import 'package:college_project/screens/fitness_screen_main.dart';
 import 'package:college_project/homescreen.dart';
-import 'package:college_project/mental_wellness_screen_main.dart';
-import 'package:college_project/profile_screen.dart';
+import 'package:college_project/screens/mental_wellness_screen_main.dart';
+import 'package:college_project/auth/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:college_project/OMW/techniques.dart';

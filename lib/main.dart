@@ -1,9 +1,8 @@
-import 'package:college_project/auth_gate.dart';
+import 'package:college_project/auth/auth_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:college_project/Themes/theme.dart';
 import 'package:college_project/Themes/theme_provider.dart';
-import 'package:college_project/main_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 void main() async {

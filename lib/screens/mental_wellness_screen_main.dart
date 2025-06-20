@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:college_project/OMW/techniques.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:college_project/mental_wellness_screen.dart';
+import 'package:college_project/screens/mental_wellness_screen.dart';
 
 class MentalWellnessScreenMain extends StatefulWidget {
   const MentalWellnessScreenMain({super.key});
@@ -14,8 +15,12 @@ class MentalWellnessScreenMain extends StatefulWidget {
 }
 
 class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
-  List<Map<String, dynamic>> meditationTechniques = [];
+  List<Technique> meditationTechniques = []; // Changed to List<Technique>
   bool isLoading = true;
+
+  // State to hold the selected technique and date/time for display (optional)
+  Technique? _selectedTechniqueForDisplay;
+  DateTime? _selectedDateTimeForDisplay;
 
   @override
   void initState() {
@@ -24,12 +29,69 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
   }
 
   Future<void> _fetchTechniques() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('meditation').get();
-    setState(() {
-      meditationTechniques = snapshot.docs.map((doc) => doc.data()).toList();
-      isLoading = false;
-    });
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('meditation').get();
+      setState(() {
+        meditationTechniques = snapshot.docs
+            .map((doc) => Technique.fromFirestore(doc.data()))
+            .toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching meditation techniques: $e");
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load techniques: $e")),
+      );
+    }
+  }
+
+  // --- REUSABLE METHOD TO SAVE DATA TO FIRESTORE (same as before) ---
+  Future<void> _saveActivity(
+      Technique technique, DateTime dateTime, String category) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("You need to be logged in to save activities.")),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('activities')
+          .add({
+        'techniqueTitle': technique.title,
+        'timestamp': Timestamp.fromDate(dateTime),
+        'category': category, // Use the passed category
+        'createdAt': FieldValue.serverTimestamp(),
+        'userId': user.uid,
+        'isCompleted': false, // <--- ADD THIS LINE HERE!
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                "Scheduled '${technique.title}' for ${DateFormat('yyyy-MM-dd HH:mm').format(dateTime)}")),
+      );
+      // Update local state for display
+      setState(() {
+        _selectedTechniqueForDisplay = technique;
+        _selectedDateTimeForDisplay = dateTime;
+      });
+      print("$category activity saved successfully!");
+    } catch (e) {
+      print("Error saving $category activity: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save activity: $e")),
+      );
+    }
   }
 
   @override
@@ -40,14 +102,14 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: isLoading
-              ? const CircularProgressIndicator()
+              ? const Center(child: CircularProgressIndicator())
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const BreathingMindfulnessCard(),
                     const SizedBox(height: 40),
                     const Text(
-                      "Select the Mindfulness and Meditation Techniques you want to learn",
+                      "Mental clarity starts with a choice.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 30,
@@ -64,17 +126,40 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
                       child: const Text("Select"),
                     ),
                     const SizedBox(height: 15),
+                    // Optional: Display the last selected item
+                    if (_selectedTechniqueForDisplay != null &&
+                        _selectedDateTimeForDisplay != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 15.0),
+                        child: Card(
+                          margin: EdgeInsets.symmetric(horizontal: 10),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Last Scheduled Mental Wellness Activity:",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16),
+                                ),
+                                SizedBox(height: 5),
+                                Text(
+                                    "Technique: ${_selectedTechniqueForDisplay!.title}"),
+                                Text(
+                                    "Time: ${DateFormat('yyyy-MM-dd – kk:mm').format(_selectedDateTimeForDisplay!)}"),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     InkWell(
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => MentalWellnessScreen(
-                            techniques: meditationTechniques
-                                .map((tech) => Technique(
-                                      title: tech['title'] ?? '',
-                                      description: tech['description'] ?? '',
-                                    ))
-                                .toList(),
+                            techniques: meditationTechniques,
                           ),
                         ),
                       ),
@@ -88,14 +173,19 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
                               borderRadius: BorderRadius.circular(16),
                               child: Image.asset(
                                 'assets/Wellness.jpg',
+                                fit: BoxFit.cover,
+                                width: double.infinity,
                               ),
                             ),
-                            const Text(
-                              "All The Techniques",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                            const Positioned(
+                              bottom: 10,
+                              child: Text(
+                                "All The Techniques",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
@@ -110,90 +200,123 @@ class _MentalWellnessScreenMainState extends State<MentalWellnessScreenMain> {
   }
 
   void _showTechniqueSelectionSheet(BuildContext context) {
-    String? selectedTechnique;
-
     showModalBottomSheet(
       context: context,
-      builder: (_) => SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Choose a technique:", style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 20),
-              Column(
-                children: meditationTechniques.map((technique) {
-                  return RadioListTile<String>(
-                    title: Text(technique['title'] ?? ''),
-                    value: technique['title'],
-                    groupValue: selectedTechnique,
-                    onChanged: (value) {
-                      selectedTechnique = value;
-                      Navigator.pop(context);
-                      _showDateTimeSheet(context, technique['title']);
-                    },
-                  );
-                }).toList(),
+      builder: (_) {
+        String? selectedTechniqueTitle; // Local state for the modal
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Choose a technique:",
+                        style: TextStyle(fontSize: 18)),
+                    const SizedBox(height: 20),
+                    Column(
+                      children: meditationTechniques.map((technique) {
+                        return RadioListTile<String>(
+                          title: Text(technique.title), // Use technique.title
+                          value: technique.title,
+                          groupValue: selectedTechniqueTitle,
+                          onChanged: (value) {
+                            setModalState(() {
+                              selectedTechniqueTitle = value;
+                            });
+                            Navigator.pop(
+                                context); // Close technique selection sheet
+                            _showDateTimeSheet(context,
+                                technique); // Pass the Technique object
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
-  void _showDateTimeSheet(BuildContext context, String title) {
-    DateTime? selectedDateTime;
-
+  void _showDateTimeSheet(BuildContext context, Technique technique) {
     showModalBottomSheet(
       context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Select Date and Time for '$title'",
-                style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                DateTime? pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2100),
-                );
+      builder: (_) {
+        DateTime? tempSelectedDateTime; // Local state for the modal
 
-                if (pickedDate != null) {
-                  TimeOfDay? pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.now(),
-                  );
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                      "Select Date and Time for '${technique.title}'", // Use technique.title
+                      style: const TextStyle(fontSize: 18)),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      );
 
-                  if (pickedTime != null) {
-                    selectedDateTime = DateTime(
-                      pickedDate.year,
-                      pickedDate.month,
-                      pickedDate.day,
-                      pickedTime.hour,
-                      pickedTime.minute,
-                    );
+                      if (pickedDate != null) {
+                        TimeOfDay? pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
 
-                    print("Selected Date and Time: $selectedDateTime");
-                    Navigator.pop(context);
-                  }
-                }
-              },
-              child: const Text("Pick Date and Time"),
-            ),
-            const SizedBox(height: 20),
-            if (selectedDateTime != null)
-              Text(
-                  "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(selectedDateTime!)}"),
-          ],
-        ),
-      ),
+                        if (pickedTime != null) {
+                          tempSelectedDateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                          setModalState(() {
+                            // Update the state of this modal sheet to show the selected date/time
+                          });
+                        }
+                      }
+                    },
+                    child: const Text("Pick Date and Time"),
+                  ),
+                  const SizedBox(height: 20),
+                  if (tempSelectedDateTime != null)
+                    Text(
+                      "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(tempSelectedDateTime!)}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    )
+                  else
+                    const Text("No date and time selected."),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: tempSelectedDateTime == null
+                        ? null // Disable button if no date/time is selected
+                        : () {
+                            Navigator.pop(context); // Close date/time sheet
+                            _saveActivity(technique, tempSelectedDateTime!,
+                                'mentalWellness'); // Pass 'mentalWellness' category
+                          },
+                    child: const Text("Schedule Activity"),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

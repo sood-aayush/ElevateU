@@ -1,8 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:college_project/OMW/techniques.dart';
-import 'package:college_project/academics_screen.dart';
+import 'package:college_project/screens/academics_screen.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 
@@ -17,6 +18,10 @@ class AcademicsMainScreen extends StatefulWidget {
 
 class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
   late Future<List<Technique>> _techniquesFuture;
+  // State to hold the selected technique and date/time in the main screen
+  // This is optional, but good for displaying what was just scheduled.
+  Technique? _selectedTechniqueForDisplay;
+  DateTime? _selectedDateTimeForDisplay;
 
   @override
   void initState() {
@@ -25,15 +30,69 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
   }
 
   Future<List<Technique>> _fetchTechniquesFromFirestore() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('academics').get();
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      return Technique(
-        title: data['title'] ?? 'Untitled',
-        description: data['description'] ?? '',
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('academics').get();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Technique(
+          title: data['title'] ?? 'Untitled',
+          description: data['description'] ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      print("Error fetching techniques: $e");
+      // You might want to show a SnackBar or more robust error UI here
+      return []; // Return empty list on error
+    }
+  }
+
+  // --- NEW METHOD TO SAVE DATA TO FIRESTORE ---
+  Future<void> _saveAcademicActivity(
+      Technique technique, DateTime dateTime) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // User is not authenticated, handle this case (e.g., show login prompt)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("You need to be logged in to save activities.")),
       );
-    }).toList();
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('activities') // A subcollection for all activities
+          .add({
+        'techniqueTitle': technique.title,
+        'timestamp':
+            Timestamp.fromDate(dateTime), // Store as Firestore Timestamp
+        'category': 'academics', // Distinguishes this activity
+        'createdAt':
+            FieldValue.serverTimestamp(), // Optional: record when saved
+        'userId': user.uid, // Redundant but good for quick queries if needed
+        'isCompleted': false, // <--- ADD THIS LINE!
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                "Scheduled '${technique.title}' for ${DateFormat('yyyy-MM-dd HH:mm').format(dateTime)}")),
+      );
+      // Update local state to display the last scheduled item (optional)
+      setState(() {
+        _selectedTechniqueForDisplay = technique;
+        _selectedDateTimeForDisplay = dateTime;
+      });
+      print("Academic activity saved successfully!");
+    } catch (e) {
+      print("Error saving academic activity: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save activity: $e")),
+      );
+    }
   }
 
   @override
@@ -66,7 +125,7 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
                   const StudySessionTimer(),
                   const SizedBox(height: 20),
                   const Text(
-                    "Select the Effective Study Techniques you want to learn",
+                    "Hack your habits - Choose your Study Strategy",
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                   ),
@@ -85,6 +144,33 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
                     child: const Text("Select"),
                   ),
                   const SizedBox(height: 15),
+                  // Optional: Display the last selected item
+                  if (_selectedTechniqueForDisplay != null &&
+                      _selectedDateTimeForDisplay != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 15.0),
+                      child: Card(
+                        margin: EdgeInsets.symmetric(horizontal: 10),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Last Scheduled Academic Activity:",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                  "Technique: ${_selectedTechniqueForDisplay!.title}"),
+                              Text(
+                                  "Time: ${DateFormat('yyyy-MM-dd – kk:mm').format(_selectedDateTimeForDisplay!)}"),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   InkWell(
                     onTap: () => Navigator.push(
                       context,
@@ -102,14 +188,22 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
                             borderRadius: BorderRadius.circular(16),
                             child: Image.asset(
                               'assets/Academics.jpeg',
+                              fit: BoxFit
+                                  .cover, // Ensure the image covers the area
+                              width:
+                                  double.infinity, // Ensure image fills width
                             ),
                           ),
-                          const Text(
-                            "All The Techniques",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                          const Positioned(
+                            // Use Positioned for better control
+                            bottom: 10, // Adjust position as needed
+                            child: Text(
+                              "All The Techniques",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -125,89 +219,124 @@ class _AcademicsMainScreenState extends State<AcademicsMainScreen> {
     );
   }
 
+  // We need to make this a StatefulBuilder to update the UI inside the bottom sheet
   Widget _buildBottomSheet(BuildContext context, List<Technique> techniques) {
-    String? selectedTechnique;
+    String? selectedTechniqueTitle; // Renamed to avoid confusion
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Choose a technique:", style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 20),
-            Column(
-              children: techniques.map((technique) {
-                return RadioListTile<String>(
-                  title: Text(technique.title),
-                  value: technique.title,
-                  groupValue: selectedTechnique,
-                  onChanged: (value) {
-                    selectedTechnique = value;
-                    Navigator.pop(context);
-                    _showDateTimeSheet(context, technique);
-                  },
-                );
-              }).toList(),
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setModalState) {
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Choose a technique:",
+                    style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 20),
+                Column(
+                  children: techniques.map((technique) {
+                    return RadioListTile<String>(
+                      title: Text(technique.title),
+                      value: technique.title,
+                      groupValue: selectedTechniqueTitle,
+                      onChanged: (value) {
+                        setModalState(() {
+                          selectedTechniqueTitle = value;
+                        });
+                        Navigator.pop(
+                            context); // Close technique selection sheet
+                        // Pass the entire Technique object to the next sheet
+                        _showDateTimeSheet(context, technique);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   void _showDateTimeSheet(BuildContext context, Technique technique) {
-    DateTime? selectedDateTime;
-
+    // Use StatefulBuilder here as well to update the UI (e.g., display selected date/time)
     showModalBottomSheet(
       context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Select Date and Time for '${technique.title}'",
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                final pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2100),
-                );
+      builder: (_) {
+        DateTime?
+            tempSelectedDateTime; // Use a temporary variable for selection within the sheet
 
-                if (pickedDate != null) {
-                  final pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.now(),
-                  );
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Select Date and Time for '${technique.title}'",
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      );
 
-                  if (pickedTime != null) {
-                    selectedDateTime = DateTime(
-                      pickedDate.year,
-                      pickedDate.month,
-                      pickedDate.day,
-                      pickedTime.hour,
-                      pickedTime.minute,
-                    );
+                      if (pickedDate != null) {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
 
-                    Navigator.pop(context);
-                  }
-                }
-              },
-              child: const Text("Pick Date and Time"),
-            ),
-            const SizedBox(height: 20),
-            if (selectedDateTime != null)
-              Text(
-                  "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(selectedDateTime!)}"),
-          ],
-        ),
-      ),
+                        if (pickedTime != null) {
+                          tempSelectedDateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                          setModalState(() {
+                            // Update the state of this modal sheet
+                            // so the Text widget below can show the selected time
+                          });
+                        }
+                      }
+                    },
+                    child: const Text("Pick Date and Time"),
+                  ),
+                  const SizedBox(height: 20),
+                  if (tempSelectedDateTime != null)
+                    Text(
+                      "Selected: ${DateFormat('yyyy-MM-dd – kk:mm').format(tempSelectedDateTime!)}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    )
+                  else
+                    const Text("No date and time selected."),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: tempSelectedDateTime == null
+                        ? null // Disable button if no date/time is selected
+                        : () {
+                            Navigator.pop(context); // Close date/time sheet
+                            _saveAcademicActivity(
+                                technique, tempSelectedDateTime!);
+                          },
+                    child: const Text("Schedule Activity"),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
